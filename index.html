@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced NOS Interface</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%);
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated Background */
+        .background-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .wireframe-grid {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: gridMove 20s linear infinite;
+        }
+
+        @keyframes gridMove {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(50px, 50px); }
+        }
+
+        .floating-particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.3; }
+            50% { transform: translateY(-20px) rotate(180deg); opacity: 1; }
+        }
+
+        /* NOS Application Container */
+        .nos-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none; /* Prevent text selection while dragging */
+        }
+
+        /* Collapsed State */
+        .nos-collapsed {
+            width: 70px;
+            height: 70px;
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .nos-collapsed::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: conic-gradient(from 0deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            border-radius: 50%;
+            animation: rotate 3s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .nos-collapsed:hover {
+            transform: scale(1.1);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .nos-logo {
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 16px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* Expanded State */
+        .nos-expanded {
+            width: 500px;
+            min-height: auto;
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 25px;
+            backdrop-filter: blur(15px);
+            padding: 15px 20px 20px 20px;
+            position: relative;
+            box-shadow: 
+                0 20px 40px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            cursor: default; /* Reset cursor for expanded view */
+        }
+
+        .nos-expanded::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.05) 0%, 
+                transparent 50%, 
+                rgba(255, 255, 255, 0.02) 100%);
+            border-radius: 25px;
+            pointer-events: none;
+        }
+        
+        .draggable-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 50px;
+            cursor: move;
+            border-radius: 25px 25px 0 0;
+        }
+
+        .window-controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .control-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .minimize-btn { background: rgba(200, 200, 200, 0.8); color: #000; }
+        .minimize-btn:hover { background: rgba(255, 255, 255, 1); transform: scale(1.1); }
+        .close-btn { background: rgba(100, 100, 100, 0.8); color: white; }
+        .close-btn:hover { background: rgba(150, 150, 150, 1); transform: scale(1.1); }
+
+        .output-area {
+            background: rgba(30, 30, 30, 0.8);
+            border-radius: 18px;
+            padding: 20px;
+            margin-bottom: 15px;
+            margin-top: 20px;
+            min-height: auto;
+            color: white;
+            font-size: 16px;
+            line-height: 1.5;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .output-area::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .output-area.thinking::before { left: 100%; }
+
+        .speech-animation {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin: 10px 0;
+        }
+        
+        .speech-animation:not(.hidden) { display: flex; }
+
+        .speech-dot {
+            width: 8px;
+            height: 8px;
+            background: #ffffff;
+            border-radius: 50%;
+            animation: speechPulse 1.4s ease-in-out infinite;
+        }
+
+        .speech-dot:nth-child(2) { animation-delay: 0.2s; }
+        .speech-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes speechPulse {
+            0%, 60%, 100% { transform: scale(1); opacity: 0.5; }
+            30% { transform: scale(1.5); opacity: 1; }
+        }
+
+        .input-row { display: flex; gap: 12px; align-items: flex-end; }
+
+        .input-field {
+            flex: 1;
+            background: rgba(30, 30, 30, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 18px;
+            padding: 15px;
+            color: white;
+            font-family: 'Inter', sans-serif;
+            font-size: 14px;
+            resize: none;
+            min-height: 50px;
+            max-height: 120px;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #ffffff;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+
+        .input-field::placeholder { color: rgba(255, 255, 255, 0.5); }
+        
+        #speechVisualizer {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(30, 30, 30, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 18px;
+            min-height: 50px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        /* UPDATED: Input Mode Toggle Button Style */
+        .mode-toggle-btn {
+            background: rgba(60, 60, 60, 0.8);
+            border: none;
+            border-radius: 18px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 50px;
+            height: 50px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+        }
+
+        .mode-toggle-btn:hover {
+            background: rgba(85, 85, 85, 1);
+            transform: translateY(-2px);
+        }
+
+        /* NEW: SVG Icon Styling */
+        .mode-toggle-btn svg {
+            width: 100%;
+            height: 100%;
+            fill: currentColor;
+            transition: opacity 0.3s ease;
+        }
+
+        .enter-btn {
+            background: linear-gradient(135deg, #ffffff, #cccccc);
+            border: none;
+            border-radius: 18px;
+            padding: 15px 30px;
+            color: #000000;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            height: 50px;
+        }
+
+        .enter-btn::before {
+            content: '';
+            position: absolute;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
+            background: linear-gradient(135deg, #ffffff, #aaaaaa);
+            border-radius: 18px;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .enter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 255, 255, 0.2);
+        }
+
+        .enter-btn:hover::before { opacity: 1; }
+
+        .enter-btn:disabled {
+            background: rgba(60, 60, 60, 0.8);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .hidden { display: none !important; }
+        .visually-hidden { opacity: 0; pointer-events: none; } /* For smoother transitions */
+
+        .fade-in { animation: fadeIn 0.5s ease forwards; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 600px) { .nos-expanded { width: 90vw; margin: 0 20px; } }
+    </style>
+</head>
+<body>
+    <div class="background-animation">
+        <div class="wireframe-grid"></div>
+        <div class="floating-particles" id="particles"></div>
+    </div>
+
+    <div class="nos-container" id="nosContainer">
+        <div class="nos-collapsed" id="collapsedState"><div class="nos-logo">NOS</div></div>
+
+        <div class="nos-expanded hidden" id="expandedState">
+            <div class="draggable-header" id="draggableHeader"></div>
+            <div class="window-controls">
+                <button class="control-btn minimize-btn" id="minimizeBtn">—</button>
+                <button class="control-btn close-btn" id="closeBtn">✕</button>
+            </div>
+
+            <div class="output-area" id="outputArea">NOS is observing and ready to respond.</div>
+
+            <div class="speech-animation hidden" id="speechAnimation">
+                <div class="speech-dot"></div><div class="speech-dot"></div><div class="speech-dot"></div>
+            </div>
+
+            <div class="input-row">
+                <textarea class="input-field" id="inputField" placeholder="Type your question here..." rows="1"></textarea>
+                
+                <div id="speechVisualizer" class="hidden">
+                   <div class="speech-animation"><div class="speech-dot"></div><div class="speech-dot"></div><div class="speech-dot"></div></div>
+                </div>
+
+                <!-- UPDATED: Toggle button with SVG icons -->
+                <button class="mode-toggle-btn" id="toggleInputBtn" title="Switch to Speech Input">
+                    <!-- Speech Icon (Soundwave) -->
+                    <svg id="iconSpeech" viewBox="0 0 24 24">
+                        <rect x="5" y="8" width="3" height="8" rx="1.5"></rect>
+                        <rect x="10.5" y="4" width="3" height="16" rx="1.5"></rect>
+                        <rect x="16" y="10" width="3" height="4" rx="1.5"></rect>
+                    </svg>
+                    <!-- Keyboard Icon (Text Lines) -->
+                    <svg id="iconKeyboard" class="hidden" viewBox="0 0 24 24">
+                        <rect x="4" y="6" width="16" height="2.5" rx="1.25"></rect>
+                        <rect x="4" y="11" width="16" height="2.5" rx="1.25"></rect>
+                        <rect x="4" y="16" width="12" height="2.5" rx="1.25"></rect>
+                    </svg>
+                </button>
+                
+                <button class="enter-btn" id="enterBtn">Enter</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Application state
+        let isExpanded = false;
+        let isProcessing = false;
+        let inputMode = 'text'; // 'text' or 'speech'
+
+        // DOM elements
+        const container = document.getElementById('nosContainer');
+        const collapsedState = document.getElementById('collapsedState');
+        const expandedState = document.getElementById('expandedState');
+        const draggableHeader = document.getElementById('draggableHeader');
+        const minimizeBtn = document.getElementById('minimizeBtn');
+        const closeBtn = document.getElementById('closeBtn');
+        const outputArea = document.getElementById('outputArea');
+        const speechAnimation = document.getElementById('speechAnimation');
+        const inputField = document.getElementById('inputField');
+        const enterBtn = document.getElementById('enterBtn');
+        const toggleInputBtn = document.getElementById('toggleInputBtn');
+        const speechVisualizer = document.getElementById('speechVisualizer');
+
+        // NEW: SVG Icon elements
+        const iconSpeech = document.getElementById('iconSpeech');
+        const iconKeyboard = document.getElementById('iconKeyboard');
+
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 6 + 's';
+                particle.style.animationDuration = (Math.random() * 4 + 4) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        function toggleExpansion() {
+            isExpanded = !isExpanded;
+            if (isExpanded) {
+                collapsedState.classList.add('hidden');
+                expandedState.classList.remove('hidden');
+                expandedState.classList.add('fade-in');
+                inputField.focus();
+            } else {
+                expandedState.classList.add('hidden');
+                collapsedState.classList.remove('hidden');
+                expandedState.classList.remove('fade-in');
+            }
+        }
+        
+        // UPDATED: Toggle function now swaps SVG visibility
+        function toggleInputMode() {
+            if (inputMode === 'text') {
+                inputMode = 'speech';
+                inputField.classList.add('hidden');
+                enterBtn.classList.add('hidden');
+                speechVisualizer.classList.remove('hidden');
+                
+                iconSpeech.classList.add('hidden');
+                iconKeyboard.classList.remove('hidden');
+                toggleInputBtn.title = 'Switch to Text Input';
+            } else {
+                inputMode = 'text';
+                inputField.classList.remove('hidden');
+                enterBtn.classList.remove('hidden');
+                speechVisualizer.classList.add('hidden');
+                
+                iconSpeech.classList.remove('hidden');
+                iconKeyboard.classList.add('hidden');
+                toggleInputBtn.title = 'Switch to Speech Input';
+                inputField.focus();
+            }
+        }
+
+        function simulateAnalysis() {
+            if (isProcessing) return;
+            const prompt = inputField.value.trim();
+            if (!prompt) return;
+
+            isProcessing = true;
+            enterBtn.disabled = true;
+            inputField.disabled = true;
+
+            outputArea.textContent = 'Analyzing your request...';
+            outputArea.classList.add('thinking');
+
+            setTimeout(() => {
+                outputArea.classList.remove('thinking');
+                outputArea.textContent = '';
+                speechAnimation.classList.remove('hidden');
+
+                setTimeout(() => {
+                    speechAnimation.classList.add('hidden');
+                    typewriterEffect(
+                        "I understand you're asking about " + prompt + ". Based on my analysis, here's what I can tell you: This is a simulated response that demonstrates the enhanced visual experience of the NOS interface. Smoother moves.",
+                        outputArea
+                    );
+                }, 2500);
+            }, 1500);
+        }
+
+        function typewriterEffect(text, element) {
+            element.textContent = '';
+            let i = 0;
+            const words = text.split(' ');
+            function typeNextWord() {
+                if (i < words.length) {
+                    element.textContent += (i > 0 ? ' ' : '') + words[i];
+                    i++;
+                    setTimeout(typeNextWord, 100 + Math.random() * 50);
+                } else {
+                    isProcessing = false;
+                    enterBtn.disabled = false;
+                    inputField.disabled = false;
+                    inputField.value = '';
+                    inputField.focus();
+                    autoResizeTextarea();
+                }
+            }
+            typeNextWord();
+        }
+
+        function autoResizeTextarea() {
+            inputField.style.height = 'auto';
+            inputField.style.height = Math.min(inputField.scrollHeight, 120) + 'px';
+        }
+
+        // Event listeners
+        collapsedState.addEventListener('click', toggleExpansion);
+        minimizeBtn.addEventListener('click', toggleExpansion);
+        toggleInputBtn.addEventListener('click', toggleInputMode);
+        closeBtn.addEventListener('click', () => {
+            container.style.opacity = '0';
+            container.style.transform = 'translate(-50%, -50%) scale(0.5)';
+            setTimeout(() => container.style.display = 'none', 300);
+        });
+
+        enterBtn.addEventListener('click', simulateAnalysis);
+        inputField.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                simulateAnalysis();
+            }
+        });
+
+        inputField.addEventListener('input', autoResizeTextarea);
+
+        // Make the window draggable
+        let isDragging = false, offsetX = 0, offsetY = 0;
+        draggableHeader.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            offsetX = e.clientX - container.offsetLeft;
+            offsetY = e.clientY - container.offsetTop;
+            container.style.transition = 'none';
+            document.body.style.cursor = 'move';
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            const newX = Math.max(0, Math.min(e.clientX - offsetX, window.innerWidth - container.offsetWidth));
+            const newY = Math.max(0, Math.min(e.clientY - offsetY, window.innerHeight - container.offsetHeight));
+            container.style.left = `${newX}px`;
+            container.style.top = `${newY}px`;
+            container.style.transform = `translate(0, 0)`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (!isDragging) return;
+            isDragging = false;
+            container.style.transition = 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
+            document.body.style.cursor = 'default';
+        });
+        
+        [minimizeBtn, closeBtn, enterBtn, toggleInputBtn, inputField].forEach(control => {
+            control.addEventListener('mousedown', (e) => e.stopPropagation());
+        });
+
+        // Initialize
+        createParticles();
+        setTimeout(() => { if (!isExpanded) toggleExpansion(); }, 2000);
+    </script>
+</body>
+</html>
